@@ -1,4 +1,5 @@
 from moviepy.editor import VideoFileClip, clips_array
+import os
 
 def process_video(video_path, start_time, end_time, target_width):
     # Load video clip
@@ -23,27 +24,40 @@ def process_video(video_path, start_time, end_time, target_width):
 
     return clip_cropped
 
+def save_video_clips(clips, output_folder):
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    for i, clip in enumerate(clips):
+        output_path = os.path.join(output_folder, f"result_{i}.mp4")
+        clip.write_videofile(output_path, codec='libx264', audio_codec='aac')
+
 def main():
-    # Replace these paths with the actual paths to your videos
     video1_path = 'dailydose.mp4'
     video2_path = 'gta.mp4'
-    output_path = 'output.mp4'
+    output_folder = 'results'
 
-    # Set parameters
+    # Parameters
     target_width = 1020
     frame_limit = 200
 
-    # Process first video
     clip1 = process_video(video1_path, 0, frame_limit / 30, target_width)
-
-    # Process second video and mute it
     clip2 = process_video(video2_path, 0, frame_limit / 30, target_width).set_audio(None)
 
     # Combine the two clips vertically
     final_clip = clips_array([[clip1], [clip2]])
 
-    # Export the final video
-    final_clip.write_videofile(output_path, codec='libx264', audio_codec='aac')
+    # Split the final clip into 5-second segments
+    segment_duration = 5
+    segments = [final_clip.subclip(i * segment_duration, (i + 1) * segment_duration)
+                for i in range(int(final_clip.duration // segment_duration))]
+
+    # Add the last segment with remaining seconds
+    last_segment = final_clip.subclip((len(segments) * segment_duration), final_clip.duration)
+    segments.append(last_segment)
+
+    # Save the video clips to the "results" folder
+    save_video_clips(segments, output_folder)
 
 if __name__ == "__main__":
     main()
